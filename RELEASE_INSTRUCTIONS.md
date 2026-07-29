@@ -2,7 +2,7 @@
 
 These steps produce a versioned, citable release of ChemFlow-ED that matches
 the version and DOI referenced in the manuscript's Data and Software
-Availability section (currently: **v1.0.2**, DOI **10.5281/zenodo.21302160**).
+Availability section (currently: **v1.0.1**, DOI **10.5281/zenodo.21682764**).
 If you change the version number or generate a new DOI, update the manuscript,
 `CITATION.cff`, and `README.md` to match — these must all agree before
 submission.
@@ -32,16 +32,16 @@ submission.
 
 ```bash
 git add -A
-git commit -m "Prepare v1.0.2 release"
-git tag -a v1.0.2 -m "ChemFlow-ED v1.0.2"
+git commit -m "Prepare v1.0.1 release"
+git tag -a v1.0.1 -m "ChemFlow-ED v1.0.1"
 git push origin main --tags
 ```
 
 ## 3. Create the GitHub release
 
 1. On GitHub, go to your repository → **Releases** → **Draft a new release**.
-2. Choose the tag you just pushed (`v1.0.2`).
-3. Title: `ChemFlow-ED v1.0.2`.
+2. Choose the tag you just pushed (`v1.0.1`).
+3. Title: `ChemFlow-ED v1.0.1`.
 4. Description: briefly summarize what changed since the last version (or,
    for a first release, summarize the contents — workflow guide, automation
    scripts, example dataset, supporting instructional materials).
@@ -62,7 +62,7 @@ git push origin main --tags
    author name and ORCID, license (MIT), and a description matching the
    README.
 5. Note the DOI Zenodo assigns. If it does not match
-   `10.5281/zenodo.21302160`, update the manuscript, `README.md`, and
+   `10.5281/zenodo.21682764`, update the manuscript, `README.md`, and
    `CITATION.cff` to the DOI Zenodo actually issued — **do not leave a
    placeholder or guessed DOI in the manuscript**.
 
@@ -89,9 +89,9 @@ git push origin main --tags
       in the reference list, not just a mention in prose). Suggested format,
       per the ACS Style Quick Guide:
 
-  > Perygin, D. H. ChemFlow-ED (version v1.0.2). *Zenodo*. American Chemical
+  > Perygin, D. H. ChemFlow-ED (version v1.0.1). *Zenodo*. American Chemical
   > Society; Jacksonville State University, 2026. DOI:
-  > 10.5281/zenodo.21302160.
+  > 10.5281/zenodo.21682764.
 
   and cite it with a superscript reference number at its mention in the Data
   and Software Availability section, the same way every other source in the

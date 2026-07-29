@@ -20,13 +20,13 @@ authors:
       University, Jacksonville, AL 36265
 repository-code: "https://github.com/dperygin/ChemFlow-ED"
 license: MIT
-version: v1.0.2
+version: v1.0.1
 date-released: "2026-07-15"
-doi: 10.5281/zenodo.21302160
+doi: 10.5281/zenodo.21682764
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.21302160
-    description: Zenodo archive of ChemFlow-ED v1.0.2
+    value: 10.5281/zenodo.21682764
+    description: Zenodo archive of ChemFlow-ED v1.0.1
 preferred-citation:
   type: article
   title: >-
