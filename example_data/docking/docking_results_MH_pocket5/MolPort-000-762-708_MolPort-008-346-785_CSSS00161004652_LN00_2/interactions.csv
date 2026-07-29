@@ -1,0 +1,16 @@
+LigandAtom,ReceptorAtom,InteractionType,Distance
+UNK0/C/39,VAL148/CG2/86,hydrophobic,3.869
+UNK0/C/40,GLY147/CA/78,hydrophobic,3.765
+UNK0/C/43,VAL148/CG2/86,hydrophobic,3.642
+UNK0/C/45,ASN53/CB/19,hydrophobic,3.705
+UNK0/C/48,VAL148/CG2/86,hydrophobic,4.285
+UNK0/C/49,ASN53/CB/19,hydrophobic,3.969
+UNK0/O/50,ASN53/ND2/21,Hbond_donor,2.804
+UNK0/C/59,ASN53/CA/18,hydrophobic,4.029
+UNK0/O/60,ASN53/N/17,Hbond_donor,3.076
+UNK0/O/66,GLY51/O/6,Hbond_donor,3.101
+UNK0/O/75,VAL148/N/84,Hbond_donor,3.188
+UNK0/O/77,ASN53/ND2/21,Hbond_donor,3.258
+UNK0/C/91,GLY56/C/30,hydrophobic,4.037
+UNK0/O/96,ASN53/ND2/21,Hbond_donor,3.060
+UNK0/O/102,ASN53/ND2/21,Hbond_donor,3.102

@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: >-
+  If you use ChemFlow-ED (the workflow, scripts, or example data),
+  please cite both the accompanying manuscript and this software
+  release.
+type: software
+title: ChemFlow-ED
+abstract: >-
+  ChemFlow-ED (Chemistry Flow for Education and Drug Discovery) is a
+  modular, open-source computational workflow and companion Python
+  script suite that lets students carry out authentic, ligand-independent
+  structure-based drug discovery beginning from an experimentally
+  determined protein structure alone.
+authors:
+  - family-names: Perygin
+    given-names: Donna H.
+    orcid: "https://orcid.org/0009-0000-6979-6033"
+    affiliation: >-
+      Department of Chemistry and Geosciences, Jacksonville State
+      University, Jacksonville, AL 36265
+repository-code: "https://github.com/dperygin/ChemFlow-ED"
+license: MIT
+version: v1.0.2
+date-released: "2026-07-15"
+doi: 10.5281/zenodo.21302160
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21302160
+    description: Zenodo archive of ChemFlow-ED v1.0.2
+preferred-citation:
+  type: article
+  title: >-
+    ChemFlow-ED: A Generalized, Open-Source Computational Workflow for
+    Teaching Structure-Based Drug Discovery in Advanced Medicinal
+    Chemistry
+  authors:
+    - family-names: Perygin
+      given-names: Donna H.
+      orcid: "https://orcid.org/0009-0000-6979-6033"
+  journal: Journal of Chemical Education
+  status: submitted

@@ -1,0 +1,59 @@
+============================================================
+AutoDock Vina Docking Summary
+============================================================
+
+Ligand name      : MolPort-006-822-498_CSSS00020617458_LN01285449_MCULE-4568201
+Ligand file      : docking_results/_sdf_split/MolPort-006-822-498_CSSS00020617458_LN01285449_MCULE-4568201.sdf
+Receptor file    : 7WX0/7wx0_P_0_5_res.pdb
+Output directory : docking_results/MolPort-006-822-498_CSSS00020617458_LN01285449_MCULE-4568201
+
+Results:
+------------------------------------------------------------
+
+AutoDock Vina v1.2.5
+#################################################################
+# If you used AutoDock Vina in your work, please cite:          #
+#                                                               #
+# J. Eberhardt, D. Santos-Martins, A. F. Tillack, and S. Forli  #
+# AutoDock Vina 1.2.0: New Docking Methods, Expanded Force      #
+# Field, and Python Bindings, J. Chem. Inf. Model. (2021)       #
+# DOI 10.1021/acs.jcim.1c00203                                  #
+#                                                               #
+# O. Trott, A. J. Olson,                                        #
+# AutoDock Vina: improving the speed and accuracy of docking    #
+# with a new scoring function, efficient optimization and       #
+# multithreading, J. Comp. Chem. (2010)                         #
+# DOI 10.1002/jcc.21334                                         #
+#                                                               #
+# Please see https://github.com/ccsb-scripps/AutoDock-Vina for  #
+# more information.                                             #
+#################################################################
+
+Scoring function : vina
+Rigid receptor: /home/dperygin/Documents/pymol/docking/protein.pdbqt
+Ligand: /home/dperygin/Documents/pymol/docking/ligand.pdbqt
+Grid center: X 15.6845 Y 15.916 Z 63.002
+Grid size  : X 19.599 Y 19.516 Z 20.082
+Grid space : 0.375
+Exhaustiveness: 8
+CPU: 0
+Verbosity: 1
+
+Computing Vina grid ... done.
+Performing docking (random seed: -1716405849) ... 
+0%   10   20   30   40   50   60   70   80   90   100%
+|----|----|----|----|----|----|----|----|----|----|
+***************************************************
+
+mode |   affinity | dist from best mode
+     | (kcal/mol) | rmsd l.b.| rmsd u.b.
+-----+------------+----------+----------
+   1       -2.532          0          0
+   2        -2.53      2.217      3.388
+   3       -2.481      2.914      5.456
+   4       -2.392      2.709      7.651
+   5        -2.38      6.593      9.682
+   6        -2.37       2.09      3.864
+   7       -2.317      2.944      5.129
+   8       -2.279       2.06      7.416
+   9       -2.269      2.355      7.653
