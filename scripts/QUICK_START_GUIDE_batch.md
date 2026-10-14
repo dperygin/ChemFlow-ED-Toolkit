@@ -2,67 +2,84 @@
 
 ## Basic Usage
 
-### 1. Simplest Usage (Auto-detect binding site)
-
+Work from your docking folder (create it the first time):
 
 ```bash
-
-cd ~/Documents/pymol
-mkdir docking
-cd docking
-or if exists
+mkdir -p ~/Documents/pymol/docking
 cd ~/Documents/pymol/docking
-example usage:
-python pymol_vina_docking.py --receptor 5NN3/protein.pdb --ligand 5NN3/J059-0151_mol.sdf
-python pymol_vina_docking.py --receptor protein.pdb --ligand ligand.mol2
-python pymol_vina_docking.py --receptor 3HS4.pdb --ligand benzamidine.pdb
-To dock an entire sdf of ligands (3 input files: full receptor, pocket, sdf):
-python pymol_vina_docking_batchv4.py --receptor 1KW0/1kw0.pdb --pocket 1KW0/1kw0_P_0_res.pdb --sdf 1KW0/query_results.sdf
+```
 
+### 1. Batch Docking a Hit List (3 input files)
 
+`pymol_vina_docking_batchv4.py` needs three files:
+
+| Option | File | Used for |
+|---|---|---|
+| `--receptor` | Full protein PDB (e.g. `7WX0.pdb` from the PDB) | The structure every ligand is docked and scored against |
+| `--pocket` | Pocket PDB from DoGSiteScorer (e.g. `7wx0_P_0_5_res.pdb`) | Only to set the docking box |
+| `--sdf` | Hit list from Pharmit (e.g. `query_results.sdf`) | The compounds to dock |
+
+```bash
+python3 pymol_vina_docking_batchv4.py \
+    --receptor 7WX0/7WX0.pdb \
+    --pocket 7WX0/7wx0_P_0_5_res.pdb \
+    --sdf 7WX0/query_results.sdf
+```
+
+The docking box is computed automatically from the pocket file: it encloses
+the pocket's heavy atoms plus 5 Å of padding on each side (change with
+`--padding`). You do not need to enter any coordinates.
+
+- The pocket file and the full receptor must come from the same PDB entry so
+  they share coordinates. The script checks this and stops with an error if
+  the box contains no receptor atoms.
+- Do **not** pass the pocket file as `--receptor`. Vina would then dock
+  against only the pocket fragment, with the rest of the protein missing.
+- To dock a single compound with the same box, use `--ligand ligand.mol2`
+  in place of `--sdf`.
+
+The script will:
+- Clean and prepare the full receptor (once for the whole batch)
+- Compute the docking box from the pocket file
+- Split the SDF and prepare each ligand
+- Run AutoDock Vina for every compound
+- Write a results folder per compound plus `BATCH_SUMMARY.txt`
+
+Results are saved in `docking_results/`:
 
 ```
-All results saved in: docking_results
+docking_results/
+├── BATCH_SUMMARY.txt        # Top 2 poses for every compound
+├── receptor/                # Prepared receptor (receptor_clean.pdb, receptor.pdbqt)
+├── _sdf_split/              # One SDF per compound from the hit list
+└── <compound name>/         # One folder per compound
+    ├── docked_poses.pdbqt   # All docked poses
+    ├── best_pose.pdb        # Best scoring pose (PDB)
+    ├── best_pose.mol2       # Best scoring pose (MOL2)
+    ├── docking_session.pse  # PyMOL session file
+    ├── docking_result.png   # Visualization image
+    ├── vina_log.txt         # Vina output log
+    └── DOCKING_SUMMARY.txt  # Summary report for this compound
+```
 
-Key files:
-  - PyMOL session: docking_results/docking_session.pse
-  - Best pose: docking_results/best_pose.pdb
-  - All poses: docking_results/docked_poses.pdbqt
-  - Summary: docking_results/DOCKING_SUMMARY.txt
-  - To find the best overall candidates: extract_docking_affinities.py
-  - Analyze best candidates: docking_affinities_summary.csv
-  - Output a csv file of interactions: interactions.py
-  - Display key interactions: displayinteractions.py
-  
-  
+Next steps after docking:
+- Rank all compounds: `extract_docking_affinities.py` → `docking_affinities_summary.csv`
+- Output a csv file of interactions for a pose: `interactions.py`
+- Display key interactions: `displayinteractions.py`
+- View one result: `pymol docking_results/<compound name>/docking_session.pse`
 
-To view results individually:
-  pymol docking_results/docking_session.pse
+### 2. Single Ligand (`pymol_vina_docking.py`)
 
-This will:
-- Clean and prepare your receptor
-- Prepare your ligand
-- Auto-detect the binding site (single-ligand script: from the receptor
-  structure; batch script: from the pocket file — see below)
-- Run docking with default parameters
-- Generate visualizations and results
+```bash
+python3 pymol_vina_docking.py --receptor protein.pdb --ligand ligand.mol2
+```
 
-**Batch script inputs (`pymol_vina_docking_batchv4.py`):**
-- `--receptor` — the **full** protein PDB. Every ligand is docked and scored
-  against this structure.
-- `--pocket` — the binding-pocket PDB (e.g. the DoGSiteScorer `*_res.pdb`
-  file). It is used **only** to set the docking box, which encloses the
-  pocket's heavy atoms plus 5 Å of padding on each side (change with
-  `--padding`).
-- `--sdf` — the hit list to dock (or `--ligand` for a single compound).
+This single-ligand script builds the box around the entire receptor unless
+you give `--center` and `--size` (see below). Its results are written
+directly into `docking_results/` with the same per-compound files listed
+above.
 
-The pocket file and the full receptor must come from the same PDB entry so
-they share coordinates. The script checks this and stops with an error if the
-box contains no receptor atoms. Do **not** pass the pocket file as
-`--receptor`: Vina would then dock against only the pocket fragment, with the
-rest of the protein missing.
-
-### 2. Specify Binding Site Manually
+### 3. Specify Binding Site Manually (single-ligand script)
 ```bash
 python pymol_vina_docking.py \
     --receptor protein.pdb \
@@ -72,7 +89,7 @@ python pymol_vina_docking.py \
     --output my_docking_results
 ```
 
-### 3. High-Thoroughness Docking
+### 4. High-Thoroughness Docking
 ```bash
 python pymol_vina_docking.py \
     --receptor protein.pdb \
@@ -81,7 +98,7 @@ python pymol_vina_docking.py \
     --num-modes 20
 ```
 
-### 4. Keep Waters and Cofactors
+### 5. Keep Waters and Cofactors
 ```bash
 python pymol_vina_docking.py \
     --receptor protein.pdb \
@@ -134,20 +151,7 @@ The script can be modified to use a reference ligand. Let me know if you need th
 After running, you'll find in your output directory:
 
 ### Files Generated:
-```
-docking_results/
-├── receptor_clean.pdb       # Cleaned receptor structure
-├── receptor.pdbqt           # Receptor in PDBQT format
-├── ligand.pdb               # Ligand in PDB format
-├── ligand.pdbqt             # Ligand in PDBQT format
-├── docked_poses.pdbqt       # All docked poses
-├── best_pose.pdb            # Best scoring pose (PDB)
-├── best_pose.mol2           # Best scoring pose (MOL2)
-├── docking_session.pse      # PyMOL session file
-├── docking_result.png       # Visualization image
-├── vina_log.txt             # Vina output log
-└── DOCKING_SUMMARY.txt      # Summary report
-```
+See the `docking_results/` layout under **1. Batch Docking a Hit List** above.
 
 ### Interpreting Results:
 
@@ -287,7 +291,8 @@ Modify `visualize_results()` to customize PyMOL rendering.
 
 Run with `--help` to see all options:
 ```bash
-python pymol_vina_docking.py --help
+python3 pymol_vina_docking_batchv4.py --help
+python3 pymol_vina_docking.py --help
 ```
 
 ## Example with Real Data

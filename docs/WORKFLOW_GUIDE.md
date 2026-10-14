@@ -12,6 +12,10 @@ AutoDock Vina, MGLTools, and required Python packages are installed correctly
 
 Choose a therapeutically relevant target from the Protein Data Bank
 (https://www.rcsb.org). Download the structure file (e.g., `7WX0.pdb`).
+Or From Pymol:
+1. fetch 7WX0
+2. h_add
+3. Export Structure>Export molecule> save into the correct subfolder: 7WX0
 
 ## Step 2 — Identify candidate binding pockets (DoGSiteScorer)
 
