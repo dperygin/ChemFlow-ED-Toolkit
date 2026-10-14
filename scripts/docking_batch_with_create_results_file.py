@@ -38,14 +38,14 @@ except ImportError:
 # ── Configuration – edit paths to match your installation ───────────────────
 VINA_EXECUTABLE  = "/usr/local/bin/vina"
 PREPARE_RECEPTOR = (
-    "/home/username/MGLTools-1.5.7/MGLToolsPckgs/"
+    "/home/user/MGLTools-1.5.7/MGLToolsPckgs/"
     "AutoDockTools/Utilities24/prepare_receptor4.py"
 )
 PREPARE_LIGAND   = (
-    "/home/username/MGLTools-1.5.7/MGLToolsPckgs/"
+    "/home/user/MGLTools-1.5.7/MGLToolsPckgs/"
     "AutoDockTools/Utilities24/prepare_ligand4.py"
 )
-PYTHONSH         = "/home/username/MGLTools-1.5.7/bin/pythonsh"
+PYTHONSH         = "/home/user/MGLTools-1.5.7/bin/pythonsh"
 
 _PYMOL_LAUNCHED  = False   # module-level flag – launch PyMOL only once
 
@@ -369,22 +369,26 @@ class VinaDocker:
             log_content = fh.read()
 
         # Parse all 4 columns Vina reports: mode, affinity, rmsd_lb, rmsd_ub
+        # The score rows sit BELOW the "-----+------------+" divider that
+        # follows the column headers, so start collecting after the divider
+        # and stop at the first non-score line once rows have been read.
         results = []
         if "mode |   affinity" in log_content:
-            affinity_section = False
+            in_table = False
             for line in log_content.split("\n"):
-                if "mode |   affinity" in line:
-                    affinity_section = True
+                if line.strip().startswith("-----+"):
+                    in_table = True
                     continue
-                if affinity_section and line.strip().startswith(("-", "+")):
+                if not in_table:
+                    continue
+                parts = line.split()
+                if len(parts) >= 4 and parts[0].isdigit():
+                    results.append((parts[0], parts[1], parts[2], parts[3]))
+                elif len(parts) == 2 and parts[0].isdigit():
+                    # Fallback if rmsd columns are absent
+                    results.append((parts[0], parts[1], "N/A", "N/A"))
+                elif results:
                     break
-                if affinity_section and line.strip():
-                    parts = line.split()
-                    if len(parts) >= 4 and parts[0].isdigit():
-                        results.append((parts[0], parts[1], parts[2], parts[3]))
-                    elif len(parts) == 2 and parts[0].isdigit():
-                        # Fallback if rmsd columns are absent
-                        results.append((parts[0], parts[1], "N/A", "N/A"))
 
             if results:
                 print("\nBinding Affinities (kcal/mol):")

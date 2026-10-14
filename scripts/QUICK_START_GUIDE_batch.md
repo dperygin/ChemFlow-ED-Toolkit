@@ -16,8 +16,8 @@ example usage:
 python pymol_vina_docking.py --receptor 5NN3/protein.pdb --ligand 5NN3/J059-0151_mol.sdf
 python pymol_vina_docking.py --receptor protein.pdb --ligand ligand.mol2
 python pymol_vina_docking.py --receptor 3HS4.pdb --ligand benzamidine.pdb
-To dock an entire sdf of ligands:
-python pymol_vina_docking_batchv4.py --receptor 1KW0/1kw0_P_0_res.pdb --sdf 1KW0/query_results.sdf
+To dock an entire sdf of ligands (3 input files: full receptor, pocket, sdf):
+python pymol_vina_docking_batchv4.py --receptor 1KW0/1kw0.pdb --pocket 1KW0/1kw0_P_0_res.pdb --sdf 1KW0/query_results.sdf
 
 
 
@@ -42,9 +42,25 @@ To view results individually:
 This will:
 - Clean and prepare your receptor
 - Prepare your ligand
-- Auto-detect the binding site based on receptor structure
+- Auto-detect the binding site (single-ligand script: from the receptor
+  structure; batch script: from the pocket file — see below)
 - Run docking with default parameters
 - Generate visualizations and results
+
+**Batch script inputs (`pymol_vina_docking_batchv4.py`):**
+- `--receptor` — the **full** protein PDB. Every ligand is docked and scored
+  against this structure.
+- `--pocket` — the binding-pocket PDB (e.g. the DoGSiteScorer `*_res.pdb`
+  file). It is used **only** to set the docking box, which encloses the
+  pocket's heavy atoms plus 5 Å of padding on each side (change with
+  `--padding`).
+- `--sdf` — the hit list to dock (or `--ligand` for a single compound).
+
+The pocket file and the full receptor must come from the same PDB entry so
+they share coordinates. The script checks this and stops with an error if the
+box contains no receptor atoms. Do **not** pass the pocket file as
+`--receptor`: Vina would then dock against only the pocket fragment, with the
+rest of the protein missing.
 
 ### 2. Specify Binding Site Manually
 ```bash
@@ -79,7 +95,11 @@ python pymol_vina_docking.py \
 If you don't know the binding site coordinates, you have several options:
 
 ### Option 1: Let the script auto-detect (easiest)
-Just don't specify `--center` and `--size`, and the script will use the entire receptor.
+Just don't specify `--center` and `--size`. The single-ligand script
+(`pymol_vina_docking.py`) will use the entire receptor; the batch script
+(`pymol_vina_docking_batchv4.py`) will build the box around the `--pocket` file.
+With the batch script, giving `--center` and `--size` together overrides the
+pocket file (both are required; giving only one is an error).
 
 ### Option 2: Use PyMOL to find coordinates manually
 
@@ -207,7 +227,18 @@ conda install -c conda-forge mgltools
 
 ## Advanced: Batch Docking
 
-To dock multiple ligands, create a simple bash script:
+The easiest way to dock many ligands is `pymol_vina_docking_batchv4.py`,
+which takes a multi-compound SDF directly:
+
+```bash
+python pymol_vina_docking_batchv4.py \
+    --receptor protein.pdb \
+    --pocket pocket_res.pdb \
+    --sdf query_results.sdf
+```
+
+Alternatively, to loop the single-ligand script over separate files, create a
+simple bash script:
 
 ```bash
 #!/bin/bash

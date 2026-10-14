@@ -26,7 +26,9 @@ Choose a therapeutically relevant target from the Protein Data Bank
    PyMOL for accessibility and biological plausibility before selecting one.
 6. Click **Download** on your chosen pocket. The `residues/` subfolder of the
    downloaded archive contains the pocket PDB file (e.g., `7wx0_P_0_5_res.pdb`)
-   used in the next step.
+   used in the next step. Keep this file: it is also used in Step 5 to define
+   the docking box. Keep the full structure from Step 1 as well, since
+   docking is run against the whole protein, not the pocket file.
 
 ## Step 3 — Generate a receptor-derived pharmacophore (PharmacoForge)
 
@@ -63,16 +65,35 @@ Choose a therapeutically relevant target from the Protein Data Bank
 
 ## Step 5 — Automated molecular docking
 
-Place your receptor PDB and the downloaded ligand SDF file in a shared working
-directory, then run:
+The docking script takes three input files:
+
+| Input | File (7WX0 example) | Used for |
+|---|---|---|
+| `--receptor` | `7WX0.pdb` (full structure from Step 1) | The protein every ligand is docked and scored against |
+| `--pocket` | `7wx0_P_0_5_res.pdb` (pocket PDB from Step 2) | Only to set the docking box |
+| `--sdf` | `query_results.sdf` (hit list from Step 4) | The compounds to dock |
+
+Place all three files in a shared working directory, then run:
 
 ```bash
-python3 pymol_vina_docking_batchv4.py --receptor 7WX0/7wx0_P_0_5_res.pdb --sdf 7WX0/query_results.sdf
+python3 pymol_vina_docking_batchv4.py --receptor 7WX0/7WX0.pdb --pocket 7WX0/7wx0_P_0_5_res.pdb --sdf 7WX0/query_results.sdf
 ```
 
-This automatically prepares the receptor and every ligand, runs AutoDock Vina
-for each compound, and writes a standardized results directory per ligand
-containing docking poses, log files, and a PyMOL session.
+The docking box is computed automatically: it encloses every heavy atom in the
+pocket file, plus 5 Å of padding on each side (adjustable with `--padding`).
+The script then prepares the full receptor and every ligand, runs AutoDock Vina
+for each compound inside that box, and writes a standardized results directory
+per ligand containing docking poses, log files, and a PyMOL session.
+
+> **Why two protein files?** The pocket file contains only the atoms lining
+> the pocket. It is ideal for locating the binding site, but if it were used
+> as the receptor, Vina would treat the rest of the protein as empty space:
+> ligands could be placed where protein atoms actually sit, and scores would
+> be artificially weak. Docking against the full structure avoids this.
+
+> **Note:** The pocket file and the full receptor must come from the same PDB
+> entry so that they share coordinates. The script checks this and stops with
+> an error if the docking box contains no receptor atoms.
 
 > **Note:** AutoDock/PyMOL cannot process some heavy or unusual atoms (e.g.,
 > certain metal centers) automatically. If you see an error such as

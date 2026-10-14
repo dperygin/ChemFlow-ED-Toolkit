@@ -3,14 +3,25 @@
 PyMOL + AutoDock Vina Flexible Docking Script
 Supports single-ligand and multi-ligand SDF batch docking.
 
-Usage (single ligand):
-    python pymol_vina_docking.py --receptor protein.pdb --ligand ligand.mol2
-
 Usage (batch SDF):
-    python pymol_vina_docking.py --receptor protein.pdb --sdf compounds.sdf
+    python pymol_vina_docking_batchv4.py --receptor protein.pdb \
+           --pocket pocket.pdb --sdf compounds.sdf
 
-The receptor binding box is automatically computed from the full receptor
-extent (+ padding), so pre-narrowed binding-pocket PDBs work out of the box.
+Usage (single ligand):
+    python pymol_vina_docking_batchv4.py --receptor protein.pdb \
+           --pocket pocket.pdb --ligand ligand.mol2
+
+Three inputs:
+    --receptor  the FULL protein structure. Ligands are docked and scored
+                against this, so every atom around the pocket is present.
+    --pocket    a binding-pocket PDB (e.g. a DoGSiteScorer *_res.pdb file)
+                in the same coordinate frame as the receptor. It is used
+                ONLY to compute the docking box: the box encloses every
+                pocket atom plus --padding on each side.
+    --sdf       the hit list (or --ligand for a single compound).
+
+--center and --size can still be given together to set the box by hand,
+in which case --pocket is not needed.
 
 Requirements:
     - PyMOL (open-source)
@@ -38,19 +49,19 @@ except ImportError:
 # ── Configuration – edit paths to match your installation ───────────────────
 VINA_EXECUTABLE  = "/usr/local/bin/vina"
 PREPARE_RECEPTOR = (
-    "/home/username/MGLTools-1.5.7/MGLToolsPckgs/"
+    "/home/user/MGLTools-1.5.7/MGLToolsPckgs/"
     "AutoDockTools/Utilities24/prepare_receptor4.py"
 )
 PREPARE_LIGAND   = (
-    "/home/username/MGLTools-1.5.7/MGLToolsPckgs/"
+    "/home/user/MGLTools-1.5.7/MGLToolsPckgs/"
     "AutoDockTools/Utilities24/prepare_ligand4.py"
 )
-PYTHONSH         = "/home/username/MGLTools-1.5.7/bin/pythonsh"
+PYTHONSH         = "/home/user/MGLTools-1.5.7/bin/pythonsh"
 
 # Absolute working directory where MGLTools reads/writes protein.pdb and
 # ligand.pdb.  MGLTools resolves paths relative to its own cwd, so we
 # always use absolute paths rooted here.
-MGLTOOLS_WORK_DIR = Path("/home/username/Documents/pymol/docking")
+MGLTOOLS_WORK_DIR = Path("/home/user/Documents/pymol/docking")
 
 _PYMOL_LAUNCHED  = False   # module-level flag – launch PyMOL only once
 
@@ -246,19 +257,27 @@ class VinaDocker:
 
     # ── Binding-site calculation ─────────────────────────────────────────────
 
-    def calculate_binding_site(self, selection="all", padding=5.0):
+    def calculate_binding_site(self, box_file, padding=5.0):
         """
-        Compute center + size of the search box from the receptor extent.
-        Encompassing the entire receptor is ideal when the PDB is already
-        a pre-trimmed binding pocket.
+        Compute center + size of the search box from the extent of
+        box_file (the binding-pocket PDB), plus `padding` on every side.
+        Waters and hydrogens in the pocket file are ignored, so the box is
+        the same whether or not the pocket file has been protonated.
         """
         print("\n" + "=" * 60)
-        print("STEP 3: Calculating Binding Box from Receptor Extent")
+        print("STEP 3: Calculating Binding Box from Pocket File")
         print("=" * 60)
+        print(f"  Pocket file : {box_file}")
 
-        cmd.load(str(self.receptor_file), "receptor_box")
-        extent = cmd.get_extent(selection)
-        cmd.delete("receptor_box")
+        cmd.load(str(box_file), "pocket_box")
+        n_atoms = cmd.count_atoms("pocket_box and not solvent and not hydro")
+        if n_atoms == 0:
+            cmd.delete("pocket_box")
+            raise ValueError(f"No atoms found in pocket file: {box_file}")
+        # Measure ONLY the pocket object, not anything else loaded in PyMOL
+        extent = cmd.get_extent("pocket_box and not solvent and not hydro")
+        cmd.delete("pocket_box")
+        print(f"  Pocket atoms: {n_atoms}")
 
         center = [
             (extent[0][0] + extent[1][0]) / 2,
@@ -406,22 +425,26 @@ class VinaDocker:
             log_content = fh.read()
 
         # Parse all 4 columns Vina reports: mode, affinity, rmsd_lb, rmsd_ub
+        # The score rows sit BELOW the "-----+------------+" divider that
+        # follows the column headers, so start collecting after the divider
+        # and stop at the first non-score line once rows have been read.
         results = []
         if "mode |   affinity" in log_content:
-            affinity_section = False
+            in_table = False
             for line in log_content.split("\n"):
-                if "mode |   affinity" in line:
-                    affinity_section = True
+                if line.strip().startswith("-----+"):
+                    in_table = True
                     continue
-                if affinity_section and line.strip().startswith(("-", "+")):
+                if not in_table:
+                    continue
+                parts = line.split()
+                if len(parts) >= 4 and parts[0].isdigit():
+                    results.append((parts[0], parts[1], parts[2], parts[3]))
+                elif len(parts) == 2 and parts[0].isdigit():
+                    # Fallback if rmsd columns are absent
+                    results.append((parts[0], parts[1], "N/A", "N/A"))
+                elif results:
                     break
-                if affinity_section and line.strip():
-                    parts = line.split()
-                    if len(parts) >= 4 and parts[0].isdigit():
-                        results.append((parts[0], parts[1], parts[2], parts[3]))
-                    elif len(parts) == 2 and parts[0].isdigit():
-                        # Fallback if rmsd columns are absent
-                        results.append((parts[0], parts[1], "N/A", "N/A"))
 
             if results:
                 print("\nBinding Affinities (kcal/mol):")
@@ -472,6 +495,30 @@ def prepare_shared_receptor(receptor_file, base_output_dir,
         remove_hetero=remove_hetero,
         shared_out_dir=shared_dir,
     )
+
+
+def check_box_against_receptor(receptor_file, center, size):
+    """
+    Count full-receptor atoms inside the docking box. Zero means the pocket
+    file and the receptor are not in the same coordinate frame (e.g. the
+    pocket came from a different PDB entry or a re-centred structure).
+    """
+    cmd.load(str(receptor_file), "receptor_check")
+    coords = cmd.get_coords("receptor_check and not solvent")
+    cmd.delete("receptor_check")
+    lo = [center[i] - size[i] / 2 for i in range(3)]
+    hi = [center[i] + size[i] / 2 for i in range(3)]
+    inside = 0
+    if coords is not None:
+        for x, y, z in coords:
+            if lo[0] <= x <= hi[0] and lo[1] <= y <= hi[1] and lo[2] <= z <= hi[2]:
+                inside += 1
+    print(f"  Receptor atoms inside box: {inside}")
+    if inside == 0:
+        print("ERROR: The docking box contains no receptor atoms. Check that the "
+              "pocket file and the receptor come from the same structure and "
+              "coordinate frame.")
+        sys.exit(1)
 
 
 # ── Batch summary table ──────────────────────────────────────────────────────
@@ -537,19 +584,25 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Batch SDF, box computed from the pocket file:
+  python pymol_vina_docking_batchv4.py --receptor 7wx0.pdb \\
+         --pocket 7wx0_P_1_res.pdb --sdf query_results.sdf
+
   # Single ligand:
-  python pymol_vina_docking.py --receptor protein.pdb --ligand ligand.mol2
+  python pymol_vina_docking_batchv4.py --receptor 7wx0.pdb \\
+         --pocket 7wx0_P_1_res.pdb --ligand ligand.mol2
 
-  # Batch SDF (auto-box entire receptor):
-  python pymol_vina_docking.py --receptor pocket.pdb --sdf compounds.sdf
-
-  # Override box manually:
-  python pymol_vina_docking.py --receptor pocket.pdb --sdf compounds.sdf \\
+  # Set the box by hand instead (no pocket file needed):
+  python pymol_vina_docking_batchv4.py --receptor 7wx0.pdb --sdf compounds.sdf \\
          --center 14.5 -22.0 104.0 --size 30 30 30
         """
     )
 
-    parser.add_argument("--receptor", required=True, help="Receptor PDB file")
+    parser.add_argument("--receptor", required=True,
+                        help="FULL receptor PDB file (docked against)")
+    parser.add_argument("--pocket",
+                        help="Binding-pocket PDB, same coordinate frame as the "
+                             "receptor; used only to compute the docking box")
     lig_group = parser.add_mutually_exclusive_group(required=True)
     lig_group.add_argument("--ligand",
                            help="Single ligand file (PDB, MOL2, SDF)")
@@ -561,12 +614,12 @@ Examples:
 
     parser.add_argument("--center", nargs=3, type=float,
                         metavar=("X", "Y", "Z"),
-                        help="Manual box center. Default: auto from receptor.")
+                        help="Manual box center (use with --size instead of --pocket)")
     parser.add_argument("--size", nargs=3, type=float,
                         metavar=("X", "Y", "Z"),
-                        help="Manual box size in Angstroms. Default: auto.")
+                        help="Manual box size in Angstroms (use with --center)")
     parser.add_argument("--padding", type=float, default=5.0,
-                        help="Padding around receptor for auto box (default: 5.0 A)")
+                        help="Padding around the pocket for the auto box (default: 5.0 A)")
 
     parser.add_argument("--keep-waters",  action="store_true",
                         help="Keep water molecules")
@@ -593,6 +646,17 @@ def main():
 
     if not Path(args.receptor).exists():
         print(f"ERROR: Receptor not found: {args.receptor}")
+        sys.exit(1)
+    manual_box = args.center is not None or args.size is not None
+    if manual_box and (args.center is None or args.size is None):
+        print("ERROR: --center and --size must be given together.")
+        sys.exit(1)
+    if not manual_box and not args.pocket:
+        print("ERROR: Provide --pocket (pocket PDB used to set the docking box), "
+              "or set the box by hand with --center and --size.")
+        sys.exit(1)
+    if args.pocket and not Path(args.pocket).exists():
+        print(f"ERROR: Pocket file not found: {args.pocket}")
         sys.exit(1)
     if args.ligand and not Path(args.ligand).exists():
         print(f"ERROR: Ligand not found: {args.ligand}")
@@ -629,16 +693,20 @@ def main():
     )
 
     # Determine binding box ONCE
-    if args.center and args.size:
+    if manual_box:
         center = args.center
         size   = args.size
         print(f"\n  Using manual binding box")
         print(f"  Center: {center}")
         print(f"  Size  : {size}")
+        if args.pocket:
+            print("  (--pocket ignored because --center/--size were given)")
     else:
         _tmp = VinaDocker(args.receptor, args.receptor, base_output,
                           receptor_pdbqt=receptor_pdbqt)
-        center, size = _tmp.calculate_binding_site(padding=args.padding)
+        center, size = _tmp.calculate_binding_site(args.pocket,
+                                                   padding=args.padding)
+    check_box_against_receptor(args.receptor, center, size)
 
     # Build list of (name, path) for all ligands
     if args.sdf:
